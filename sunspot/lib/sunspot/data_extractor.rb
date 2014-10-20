@@ -14,7 +14,7 @@ module Sunspot
       end
 
       def value_for(object)
-        object.send(@attribute_name)
+        Filter.new( object.send(@attribute_name) ).value
       end
     end
 
@@ -30,7 +30,7 @@ module Sunspot
       end
 
       def value_for(object)
-        Util.instance_eval_or_call(object, &@block)
+        Filter.new( Util.instance_eval_or_call(object, &@block) ).value
       end
     end
 
@@ -43,8 +43,32 @@ module Sunspot
       end
 
       def value_for(object)
-        @value
+        Filter.new(@value).value
       end
     end
+
+    # 
+    # A Filter to allow easy value cleaning
+    #
+    class Filter
+      def initialize(value)
+        @value = value
+      end
+      def value
+        strip_control_characters @value
+      end
+      def strip_control_characters(value)
+        return value unless value.is_a? String
+
+        value.chars.inject("") do |str, char|
+          unless char.ascii_only? and (char.ord < 32 or char.ord == 127)
+            str << char
+          end
+          str
+        end
+
+      end
+    end
+
   end
 end
